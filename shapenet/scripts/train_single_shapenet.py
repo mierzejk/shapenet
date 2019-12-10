@@ -66,8 +66,8 @@ def train_shapenet():
         config_dict["training"]["save_path"])
 
     def validation_metrics(*args):
-        input, target = map(torch.from_numpy, args)
-        return F.mse_loss(input.float(), target.float(), reduction='mean')
+        inpt, target = map(torch.from_numpy, args)
+        return F.mse_loss(inpt.float(), target.float(), reduction='mean')
 
     def batch_to_numpy(*args, **kwargs):
         args = [_arg.detach().cpu().numpy() for _arg in args
