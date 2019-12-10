@@ -202,6 +202,9 @@ class ShapeNetwork(AbstractShapeNetwork):
             specified
         """
 
+        if 'losses' in kwargs and not criterions:
+            criterions = kwargs['losses']
+        
         assert (optimizers and criterions) or not optimizers, \
             "Criterion dict cannot be emtpy, if optimizers are passed"
 

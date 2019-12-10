@@ -11,9 +11,11 @@ def train_shapenet():
     
     """
 
+    import collections
     import logging
     import numpy as np
     import torch
+    import torch.nn.functional as F
     from shapedata.single_shape import SingleShapeDataset
     from delira.training import PyTorchNetworkTrainer
     from ..utils import Config
@@ -24,6 +26,7 @@ def train_shapenet():
     from delira.training.callbacks import ReduceLROnPlateauCallbackPyTorch
     from delira.data_loading import BaseDataManager, RandomSampler, \
         SequentialSampler
+    from delira.training.train_utils import convert_batch_to_numpy_identity
     import os
     import argparse
     from sklearn.metrics import mean_squared_error
@@ -62,16 +65,32 @@ def train_shapenet():
     config_dict["training"]["save_path"] = os.path.abspath(
         config_dict["training"]["save_path"])
 
+    def validation_metrics(*args):
+        input, target = map(torch.from_numpy, args)
+        return F.mse_loss(input.float(), target.float(), reduction='mean')
+
+    def batch_to_numpy(*args, **kwargs):
+        args = [_arg.detach().cpu().numpy() for _arg in args
+                if isinstance(_arg, torch.Tensor)]
+        for k, v in kwargs.items():
+            if isinstance(v, torch.Tensor):
+                kwargs[k] = v.detach().cpu().numpy()
+            elif isinstance(v, collections.abc.Collection) and all(map(lambda i: isinstance(i, torch.Tensor), v)):
+                kwargs[k] = np.array([t.detach().cpu() if t.is_cuda else t for t in v])
+
+        return convert_batch_to_numpy_identity(*args, **kwargs)
+
     trainer = PyTorchNetworkTrainer(
         net, losses=criterions, train_metrics=metrics,
-        val_metrics={"MSE": mean_squared_error},
+        val_metrics={"MSE": validation_metrics},
         lr_scheduler_cls=ReduceLROnPlateauCallbackPyTorch,
         lr_scheduler_params=config_dict["scheduler"],
         optimizer_cls=torch.optim.Adam,
         optimizer_params=config_dict["optimizer"],
         mixed_precision=mixed_prec,
         key_mapping={"input_images": "data"},
-        **config_dict["training"])
+        **config_dict["training"],
+        convert_batch_to_npy_fn = batch_to_numpy)
 
     if args.verbose:
         print(trainer.input_device)
