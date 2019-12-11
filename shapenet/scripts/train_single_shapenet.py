@@ -18,7 +18,7 @@ def train_shapenet():
     import torch.nn.functional as F
     from shapedata.single_shape import SingleShapeDataset
     from delira.training import PyTorchNetworkTrainer
-    from ..utils import Config
+    from ..utils import Config, RMSELoss
     from ..layer import HomogeneousShapeLayer
     from ..networks import SingleShapeNetwork
     from delira.logging import TrixiHandler
@@ -58,7 +58,7 @@ def train_shapenet():
         print("Number of Parameters: %d" % num_params)
 
     criterions = {"L1": torch.nn.L1Loss()}
-    metrics = {"MSE": torch.nn.MSELoss()}
+    metrics = {"RMSE": RMSELoss()}
 
     mixed_prec = config_dict["training"].pop("mixed_prec", False)
 
@@ -67,7 +67,8 @@ def train_shapenet():
 
     def validation_metrics(*args):
         inpt, target = map(torch.from_numpy, args)
-        return F.mse_loss(inpt.float(), target.float(), reduction='mean')
+        mse_loss = F.mse_loss(inpt.float(), target.float(), reduction='mean')
+        return torch.sqrt(mse_loss)
 
     def batch_to_numpy(*args, **kwargs):
         args = [_arg.detach().cpu().numpy() for _arg in args
@@ -82,7 +83,7 @@ def train_shapenet():
 
     trainer = PyTorchNetworkTrainer(
         net, losses=criterions, train_metrics=metrics,
-        val_metrics={"MSE": validation_metrics},
+        val_metrics={"RMSE": validation_metrics},
         lr_scheduler_cls=ReduceLROnPlateauCallbackPyTorch,
         lr_scheduler_params=config_dict["scheduler"],
         optimizer_cls=torch.optim.Adam,
