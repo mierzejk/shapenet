@@ -3,3 +3,4 @@ shapedata>=0.2.0
 ninja
 kaggle
 pandas
+batchgenerators==0.19.3
