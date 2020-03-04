@@ -1,4 +1,4 @@
-# Thanks https://discuss.pytorch.org/t/rmse-loss-function/16540
+# Thanks to https://discuss.pytorch.org/t/rmse-loss-function/16540
 import torch
 
 
