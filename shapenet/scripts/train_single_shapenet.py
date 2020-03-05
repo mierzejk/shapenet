@@ -18,7 +18,7 @@ def train_shapenet():
     import torch.nn.functional as F
     from shapedata.single_shape import SingleShapeDataset
     from delira.training import PyTorchNetworkTrainer
-    from ..utils import Config, L1Loss_IOD, RMSELoss
+    from ..utils import Config, L1Loss_IOD, RMSELoss, RMSELoss_IOD
     from ..layer import HomogeneousShapeLayer
     from ..networks import SingleShapeNetwork
     from delira.logging import TrixiHandler
@@ -59,7 +59,8 @@ def train_shapenet():
 
     # criterions = {"L1": torch.nn.L1Loss()}
     criterions = {"L1": L1Loss_IOD()} # IOD normalization
-    metrics = {"RMSE": RMSELoss()}
+    # metrics = {"RMSE": RMSELoss()}
+    metrics = {"RMSE": RMSELoss_IOD()} # IOD normalization
 
     mixed_prec = config_dict["training"].pop("mixed_prec", False)
 
