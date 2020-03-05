@@ -18,7 +18,7 @@ def train_shapenet():
     import torch.nn.functional as F
     from shapedata.single_shape import SingleShapeDataset
     from delira.training import PyTorchNetworkTrainer
-    from ..utils import Config, L1Loss_IOD, RMSELoss, RMSELoss_IOD
+    from ..utils import Config, L1Loss_IOD, RMSELoss_IOD
     from ..layer import HomogeneousShapeLayer
     from ..networks import SingleShapeNetwork
     from delira.logging import TrixiHandler

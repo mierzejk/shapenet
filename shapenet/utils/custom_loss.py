@@ -13,6 +13,21 @@ class RMSELoss(torch.nn.Module):
         return loss
 
 
+def _forward_iod_loss(loss_fnc,
+                      inpt,
+                      target,
+                      right_eye_outer_corner_idx=36,
+                      left_eye_outer_corner_idx=45,
+                      *,
+                      root):
+    numerator = loss_fnc(inpt, target, reduction='none').mean((1,2))
+    if root:
+        numerator = torch.sqrt(numerator)
+
+    return torch.mean(numerator / torch.cdist(target[:, right_eye_outer_corner_idx],
+                                              target[:, left_eye_outer_corner_idx]).diag())
+
+
 class RMSELoss_IOD(torch.nn.MSELoss):
     __constants__ = ['right_eye_outer_corner_idx', 'left_eye_outer_corner_idx']
 
@@ -27,13 +42,13 @@ class RMSELoss_IOD(torch.nn.MSELoss):
         self.right_eye_outer_corner_idx = right_eye_outer_corner_idx
         self.left_eye_outer_corner_idx = left_eye_outer_corner_idx
 
-    def forward(self, input, target):
-        return torch.mean(
-            torch.sqrt(F.mse_loss(input,
-                                  target,
-                                  reduction='none').mean((1, 2))) /
-            torch.cdist(target[:,self.right_eye_outer_corner_idx],
-                        target[:,self.left_eye_outer_corner_idx]).diag())
+    def forward(self, inpt, target):
+        return _forward_iod_loss(F.mse_loss,
+                                 inpt,
+                                 target,
+                                 self.right_eye_outer_corner_idx,
+                                 self.left_eye_outer_corner_idx,
+                                 root=True)
 
 
 class L1Loss_IOD(torch.nn.L1Loss):
@@ -50,10 +65,10 @@ class L1Loss_IOD(torch.nn.L1Loss):
         self.right_eye_outer_corner_idx = right_eye_outer_corner_idx
         self.left_eye_outer_corner_idx = left_eye_outer_corner_idx
 
-    def forward(self, input, target):
-        return torch.mean(
-            F.l1_loss(input,
-                      target,
-                      reduction='none').mean((1,2)) /
-            torch.cdist(target[:,self.right_eye_outer_corner_idx],
-                        target[:,self.left_eye_outer_corner_idx]).diag())
+    def forward(self, inpt, target):
+        return _forward_iod_loss(F.l1_loss,
+                                 inpt,
+                                 target,
+                                 self.right_eye_outer_corner_idx,
+                                 self.left_eye_outer_corner_idx,
+                                 root=False)
