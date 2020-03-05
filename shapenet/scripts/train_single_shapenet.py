@@ -18,7 +18,7 @@ def train_shapenet():
     import torch.nn.functional as F
     from shapedata.single_shape import SingleShapeDataset
     from delira.training import PyTorchNetworkTrainer
-    from ..utils import Config, L1Loss_IOD, RMSELoss_IOD
+    from ..utils import Config, iod_loss, L1Loss_IOD, RMSELoss_IOD
     from ..layer import HomogeneousShapeLayer
     from ..networks import SingleShapeNetwork
     from delira.logging import TrixiHandler
@@ -58,9 +58,9 @@ def train_shapenet():
         print("Number of Parameters: %d" % num_params)
 
     # criterions = {"L1": torch.nn.L1Loss()}
-    criterions = {"L1": L1Loss_IOD()} # IOD normalization
+    criterions = {"L1": L1Loss_IOD()}  # IOD normalization
     # metrics = {"RMSE": RMSELoss()}
-    metrics = {"RMSE": RMSELoss_IOD()} # IOD normalization
+    metrics = {"RMSE": RMSELoss_IOD()}  # IOD normalization
 
     mixed_prec = config_dict["training"].pop("mixed_prec", False)
 
@@ -69,8 +69,8 @@ def train_shapenet():
 
     def validation_metrics(*args):
         inpt, target = map(torch.from_numpy, args)
-        mse_loss = F.mse_loss(inpt.float(), target.float(), reduction='mean')
-        return torch.sqrt(mse_loss)
+        return iod_loss(F.mse_loss, inpt.float(), target.float(), root=True)  # IOD normalization
+        # return torch.sqrt(F.mse_loss(inpt.float(), target.float(), reduction='mean'))
 
     def batch_to_numpy(*args, **kwargs):
         args = [_arg.detach().cpu().numpy() for _arg in args
